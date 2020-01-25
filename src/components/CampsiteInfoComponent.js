@@ -3,6 +3,9 @@ import { Card, CardImg, CardText, CardBody ,Breadcrumb , BreadcrumbItem, Button,
             Row, Label, Col} from 'reactstrap';
 import { Control, LocalForm , Errors } from 'react-redux-form';
 import { Link } from 'react-router-dom';
+import { Loading } from './LoadingComponent';
+import { baseUrl } from '../shared/baseUrl';
+import { FadeTransform, Fade, Stagger } from 'react-animation-components';
 
 const required = val => val && val.length;
 const maxLength = len => val => !val || (val.length <= len);
@@ -24,8 +27,8 @@ class CommentForm extends Component{
         this.handleSubmit = this.handleSubmit.bind(this);
     }
     handleSubmit(values) {
-        console.log('Current state is: ' + JSON.stringify(values));
-        alert('Current state is: ' + JSON.stringify(values));
+        this.toggleModal();
+        this.props.postComment(this.props.campsiteId, values.rating, values.author, values.text);
     } 
 
     toggleModal() {
@@ -115,23 +118,29 @@ class CommentForm extends Component{
 function RenderCampsite({campsite}){
         return(
             <div className="col-md-5 m-1">
-                <Card>
-                    <CardImg top src={campsite.image} alt={campsite.name} />
-                    <CardBody>
-                        <CardText>{campsite.description}</CardText>
-                    </CardBody>
-                </Card>
+                 <FadeTransform
+                in
+                transformProps={{
+                    exitTransform: 'scale(0.5) translateY(-50%)'
+                }}>
+                    <Card>
+                        <CardImg top src={baseUrl + campsite.image} alt={campsite.name} />
+                        <CardBody>
+                            <CardText>{campsite.description}</CardText>
+                        </CardBody>
+                    </Card>
+                </FadeTransform>
             </div>
         );
     }
 
-function RenderComments({comments}){
+function RenderComments({comments,postComment, campsiteId}){
         if(comments){
             return(
                 <div className="col-md-5 m-1">
-                    <h4>Comments</h4>
-                        {comments.map(n => <div key={n.id}> <p> <div>{n.text}</div> <div>--- {n.author} , {new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: '2-digit'}).format(new Date(Date.parse(n.date)))}</div> </p> </div>)}
-                    <CommentForm />
+                    <h4>Comments</h4><Stagger in>
+                        {comments.map(n => <Fade in key={n.id}><div> <p> <div>{n.text}</div> <div>--- {n.author} , {new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: '2-digit'}).format(new Date(Date.parse(n.date)))}</div> </p> </div></Fade>)}
+                        </Stagger><CommentForm campsiteId={campsiteId} postComment={postComment} />
                 </div>
             );
         }else{
@@ -141,6 +150,27 @@ function RenderComments({comments}){
 
 
 function CampsiteInfo(props){
+    if (props.isLoading) {
+        return (
+            <div className="container">
+                <div className="row">
+                    <Loading />
+                </div>
+            </div>
+        );
+    }
+    if (props.errMess) {
+        return (
+            <div className="container">
+                <div className="row">
+                    <div className="col">
+                        <h4>{props.errMess}</h4>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
         if(props.campsite){
             return (
                 <div className="container">
@@ -156,7 +186,11 @@ function CampsiteInfo(props){
                     </div>
                     <div className="row">
                         <RenderCampsite campsite={props.campsite}/>
-                        <RenderComments comments={props.comments}/>
+                        <RenderComments 
+                        comments={props.comments}
+                        postComment={props.postComment}
+                        campsiteId={props.campsite.id}
+                    />
                      </div> 
                 </div>
             );
